@@ -149,7 +149,7 @@ class Bug(Drawable):
       self.repr_anim -= 1
 
     self.heart_anim = False
-    if self.food_count > 6 and len(bugs) < 35:
+    if self.food_count > 6 and len(bugs) < 50:
       self.heart_anim = True
       for partner in bugs:
         if partner != self and partner.food_count > 6 and math.sqrt((partner.x - self.x) ** 2 + (partner.y - self.y) ** 2) < 15:
