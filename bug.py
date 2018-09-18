@@ -114,7 +114,7 @@ class Bug(Drawable):
         if dist < self.eyesight:
           self.colour_str += 2 * (1 - dist / self.eyesight)
 
-    if self.age > 12:
+    if self.age > 30:
       self.dead = True
 
     for bit in food:
@@ -159,6 +159,7 @@ class Bug(Drawable):
       new_bug.species = self.species
       new_bug.gen = self.gen + 1
       new_bug.repr_anim = 100
+      new_bug.rot = self.rot
 
       bugs.append(new_bug)
 
