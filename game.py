@@ -6,7 +6,7 @@ import math
 
 pyxel.init(255, 255)
 food = [Food(random.uniform(10, 246), random.uniform(10, 246)) for _ in range(15)]
-bugs = [Bug(random.uniform(10, 246), random.uniform(10, 246)) for _ in range(50)]
+bugs = [Bug(random.uniform(10, 246), random.uniform(10, 246)) for _ in range(30)]
 
 def update():
   if pyxel.btnp(pyxel.KEY_Q):

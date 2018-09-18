@@ -13,6 +13,10 @@ class Bug(Drawable):
     7, 8, 9, 10, 11, 12, 13, 14, 15
   ]
 
+  NUM_EYES = 3
+  EYE_DIST = 0
+  EYE_SEEN = 1
+
   #inputs
   OBJ_PRESENT = 0
   DISTANCE = 1
@@ -47,15 +51,14 @@ class Bug(Drawable):
     self.v = 0
     self.rot = 0
     self.hunger = 0
-    sizes = [7, 24, 24, 12]
+    self.input_size = 4 + self.NUM_EYES * 2
+    sizes = [self.input_size, 14, 14, 12]
     self.network = Network(sizes)
     self.a = 0
     self.colour = 0
     self.dead = False
     self.eyesight = 250
-    self.eye_seen = 0
-    self.eye_dist = 100
-    self.eye_colour = 0
+    self.reset_eyes()
     self.eye_angle = 0.2
     self.repr_timer = 0
     self.repr_anim = 0
@@ -69,7 +72,7 @@ class Bug(Drawable):
     self.propagate()
 
   def draw(self):
-    dist = self.eyesight - self.eye_dist
+    #dist = self.eyesight - self.eye_dist
     pyxel.circ(self.x, self.y, self.radius, self.colour)
     #pyxel.line(self.x, self.y, self.x+math.cos(self.rot+self.eye_angle)*min(self.eyesight, dist), self.y+math.sin(self.rot+self.eye_angle)*min(self.eyesight, dist), 5 if not bool(self.eye_seen) else 6)
     #pyxel.line(self.x, self.y, self.x+math.cos(self.rot-self.eye_angle)*min(self.eyesight, dist), self.y+math.sin(self.rot-self.eye_angle)*min(self.eyesight, dist), 5 if not bool(self.eye_seen) else 6)
@@ -81,27 +84,36 @@ class Bug(Drawable):
     if self.heart_anim:
       pyxel.text(self.x + 10, self.y - 10, "<3", 15)
 
+  def reset_eyes(self):
+    self.eyes = [(self.eyesight, 0) for _ in range(self.NUM_EYES)]
+
   def update(self, food, bugs):
-    min_obj = None
-    min_dist = self.eyesight
-    for drawable in food:
-      if drawable != self:
-        lx = math.cos(self.rot+self.eye_angle)*self.eyesight
-        ly = math.sin(self.rot+self.eye_angle)*self.eyesight
-        rx = math.cos(self.rot-self.eye_angle)*self.eyesight
-        ry = math.sin(self.rot-self.eye_angle)*self.eyesight
-        cx = drawable.x - self.x
-        cy = drawable.y - self.y
-        ca = math.atan2(cy, cx)
-        la = math.atan2(ly, lx)
-        ra = math.atan2(ry, rx)
-        dr = abs(ra - ca)
-        dl = abs(la - ca)
-        if (dr < self.eye_angle * 2 and dl < self.eye_angle * 2):
-          dist = math.sqrt(cx**2+cy**2)
-          if dist < min_dist:
-            min_obj = drawable
-            min_dist = dist
+
+    self.reset_eyes()
+
+    for eye in range(self.NUM_EYES):
+      eye_rel = self.NUM_EYES // 2 - eye
+      eye_offset = eye_rel * self.eye_angle * 2
+      min_obj = None
+      min_dist = self.eyesight
+      for drawable in food:
+        if drawable != self:
+          lx = math.cos(eye_offset+self.rot+self.eye_angle)*self.eyesight
+          ly = math.sin(eye_offset+self.rot+self.eye_angle)*self.eyesight
+          rx = math.cos(eye_offset+self.rot-self.eye_angle)*self.eyesight
+          ry = math.sin(eye_offset+self.rot-self.eye_angle)*self.eyesight
+          cx = drawable.x - self.x
+          cy = drawable.y - self.y
+          ca = math.atan2(cy, cx)
+          la = math.atan2(ly, lx)
+          ra = math.atan2(ry, rx)
+          dr = abs(ra - ca)
+          dl = abs(la - ca)
+          if (dr < self.eye_angle * 2 and dl < self.eye_angle * 2):
+            dist = math.sqrt(cx**2+cy**2)
+            if dist < min_dist:
+              min_dist = dist
+              self.eyes[eye] = (min_dist, 1)
 
     self.colour_str = 0
     for bug in bugs:
@@ -110,17 +122,8 @@ class Bug(Drawable):
         if dist < self.eyesight:
           self.colour_str += 2 * (1 - dist / self.eyesight)
 
-    self.eye_seen = 0
-    self.eye_dist = 0
-    self.eye_colour = 0
-
     if self.age > 10:
       self.dead = True
-
-    if min_obj is not None:
-      self.eye_colour = min_obj.colour
-      self.eye_dist = self.eyesight - min_dist
-      self.eye_seen = 1
 
     for bit in food:
       if not bit.eaten and math.sqrt((bit.x - self.x) ** 2 + (bit.y - self.y) ** 2) < 10:
@@ -157,7 +160,7 @@ class Bug(Drawable):
             new_bug = Bug(self.x, self.y)
             new_bug.network.weights = np.copy(self.network.weights)
             new_bug.network.biases = np.copy(self.network.biases)
-            new_bug.merge_network(partner.network)
+            new_bug.merge_network(np.copy(partner.network.weights), np.copy(partner.network.biases))
             new_bug.mutate()
             new_bug.species = self.species
             new_bug.gen = self.gen + 1
@@ -180,15 +183,15 @@ class Bug(Drawable):
     if self.hunger >= 300:
       self.dead = True
 
-  def merge_network(self, other_nw):
+  def merge_network(self, other_weights, other_biases):
     b1 = random.uniform(0.01, 0.04)
-    for i in range(len(other_nw.weights)):
-      for j in range(len(other_nw.weights[i])):
+    for i in range(len(other_weights)):
+      for j in range(len(other_weights[i])):
         if random.uniform(0, 1) < 0.5:
           b1 = 2 - b1
         b2 = 2 - b1
-        self.network.weights[i][j] = (other_nw.weights[i][j]*b1 + self.network.weights[i][j]*b2) / 2
-        self.network.biases[i][j] = (other_nw.biases[i][j]*b1 + self.network.biases[i][j]*b2) / 2
+        self.network.weights[i][j] = (other_weights[i][j]*b1 + self.network.weights[i][j]*b2) / 2
+        self.network.biases[i][j] = (other_biases[i][j]*b1 + self.network.biases[i][j]*b2) / 2
 
   def mutate(self):
     for i in range(len(self.network.weights)):
@@ -215,8 +218,13 @@ class Bug(Drawable):
     return ((0 < t1 and t1 < 1) or (0 < t2 and t2 < 1))
 
   def propagate(self):
-    inputs = np.zeros((7, 1))
-    input_list = [self.eye_seen, self.eye_dist, int(self.eye_colour == 3), math.sin(pyxel.frame_count * 6), self.hunger, self.colour_str, self.food_count]
-    for i in range(7):
+    inputs = np.zeros((self.input_size, 1))
+    input_list = [math.sin(pyxel.frame_count * 6), self.hunger, self.colour_str, self.food_count]
+
+    for eye in range(self.NUM_EYES):
+      input_list += [*self.eyes[eye]]
+
+    for i in range(self.input_size):
       inputs[i] = input_list[i]
+
     self.activations = self.network.activations(inputs)[3]
