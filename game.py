@@ -6,7 +6,7 @@ import math
 
 pyxel.init(255, 255)
 food = [Food(random.uniform(10, 246), random.uniform(10, 246)) for _ in range(15)]
-bugs = [Bug(random.uniform(10, 246), random.uniform(10, 246)) for _ in range(30)]
+bugs = [Bug(random.uniform(10, 246), random.uniform(10, 246)) for _ in range(20)]
 
 def update():
   if pyxel.btnp(pyxel.KEY_Q):
@@ -38,7 +38,7 @@ def update():
   for bug in list(bugs):
     if bug.dead:
       bugs.remove(bug)
-      if len(bugs) < 15:
+      if len(bugs) < 10:
         bugs.append(Bug(random.uniform(10, 246), random.uniform(10, 246)))
 
 def draw():
@@ -46,6 +46,8 @@ def draw():
 
   for drawable in food + bugs:
     drawable.draw()
+
+  pyxel.text(10, 10, "TOTAL BUGS: "+str(len(bugs)), 10)
 
 
 pyxel.run(update, draw)

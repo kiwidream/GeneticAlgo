@@ -16,33 +16,11 @@ class Bug(Drawable):
   NUM_EYES = 3
   EYE_DIST = 0
   EYE_SEEN = 1
-
-  #inputs
-  OBJ_PRESENT = 0
-  DISTANCE = 1
-  COLOUT_0_IN = 2
-  COLOUR_1_IN = 3
-  COLOUR_2_IN = 4
-  COLOUR_3_IN = 5
-  COLOUR_4_IN = 6
-  CLOCK = 7
-  HUNGER = 8
-  REPR_STR = 9
+  EYE_DEBUG = 0
 
   #outputs
-  ROT_LEFT = 0
-  ROT_RIGHT = 1
-  FORWARD = 2
-  COLOUR_1_OUT = 3
-  COLOUR_2_OUT = 4
-  COLOUR_3_OUT = 5
-  COLOUR_4_OUT = 6
-  COLOUR_5_OUT = 7
-  COLOUR_6_OUT = 8
-  COLOUR_7_OUT = 9
-  COLOUR_8_OUT = 10
-  COLOUR_9_OUT = 11
-
+  ROT_CTRL = 0
+  FORWARD = 1
 
   def __init__(self, x, y):
     super().__init__(x, y, 2)
@@ -51,8 +29,8 @@ class Bug(Drawable):
     self.v = 0
     self.rot = 0
     self.hunger = 0
-    self.input_size = 4 + self.NUM_EYES * 2
-    sizes = [self.input_size, 14, 14, 12]
+    self.input_size = 3 + self.NUM_EYES * 2
+    sizes = [self.input_size, 7, 7, 6]
     self.network = Network(sizes)
     self.a = 0
     self.colour = 0
@@ -72,11 +50,20 @@ class Bug(Drawable):
     self.propagate()
 
   def draw(self):
-    #dist = self.eyesight - self.eye_dist
     pyxel.circ(self.x, self.y, self.radius, self.colour)
-    #pyxel.line(self.x, self.y, self.x+math.cos(self.rot+self.eye_angle)*min(self.eyesight, dist), self.y+math.sin(self.rot+self.eye_angle)*min(self.eyesight, dist), 5 if not bool(self.eye_seen) else 6)
-    #pyxel.line(self.x, self.y, self.x+math.cos(self.rot-self.eye_angle)*min(self.eyesight, dist), self.y+math.sin(self.rot-self.eye_angle)*min(self.eyesight, dist), 5 if not bool(self.eye_seen) else 6)
-    #pyxel.line(self.x+math.cos(self.rot+self.eye_angle)*min(self.eyesight, dist), self.y+math.sin(self.rot+self.eye_angle)*min(self.eyesight, dist), self.x+math.cos(self.rot-self.eye_angle)*min(self.eyesight, dist), self.y+math.sin(self.rot-self.eye_angle)*min(self.eyesight, dist), 5 if not bool(self.eye_seen) else 6)
+
+    # Debug visualiser for eyesight
+    if self.EYE_DEBUG:
+      for eye in range(self.NUM_EYES):
+        eye_rel = self.NUM_EYES // 2 - eye
+        if self.NUM_EYES % 2 == 0:
+          eye_rel += 0.5
+        eye_offset = eye_rel * self.eye_angle * 2
+
+        dist = self.eyesight - self.eyes[eye][self.EYE_DIST]
+        pyxel.line(self.x, self.y, self.x+math.cos(eye_offset+self.rot+self.eye_angle)*min(self.eyesight, dist), self.y+math.sin(eye_offset+self.rot+self.eye_angle)*min(self.eyesight, dist), 5+eye)
+        pyxel.line(self.x, self.y, self.x+math.cos(eye_offset+self.rot-self.eye_angle)*min(self.eyesight, dist), self.y+math.sin(eye_offset+self.rot-self.eye_angle)*min(self.eyesight, dist), 5+eye)
+
     pyxel.text(self.x - 10, self.y + 10, str(self.species)+'-'+str(self.gen), 15)
     if self.repr_anim > 0:
       pyxel.text(self.x, self.y - 10 - self.repr_anim // 10, "++", 15)
@@ -84,10 +71,11 @@ class Bug(Drawable):
     if self.heart_anim:
       pyxel.text(self.x + 10, self.y - 10, "<3", 15)
     else:
-      pyxel.text(self.x + 10, self.y - 10, str(self.food_count), 15)
+      pyxel.text(self.x + 10, self.y - 10, str(math.floor(self.hunger)), 15)
+
 
   def reset_eyes(self):
-    self.eyes = [(self.eyesight, 0) for _ in range(self.NUM_EYES)]
+    self.eyes = [(0, 0) for _ in range(self.NUM_EYES)]
 
   def update(self, food, bugs):
 
@@ -95,6 +83,8 @@ class Bug(Drawable):
 
     for eye in range(self.NUM_EYES):
       eye_rel = self.NUM_EYES // 2 - eye
+      if self.NUM_EYES % 2 == 0:
+        eye_rel += 0.5
       eye_offset = eye_rel * self.eye_angle * 2
       min_obj = None
       min_dist = self.eyesight
@@ -115,7 +105,7 @@ class Bug(Drawable):
             dist = math.sqrt(cx**2+cy**2)
             if dist < min_dist:
               min_dist = dist
-              self.eyes[eye] = (min_dist, 1)
+              self.eyes[eye] = (self.eyesight - min_dist, 100)
 
     self.colour_str = 0
     for bug in bugs:
@@ -136,11 +126,13 @@ class Bug(Drawable):
         self.hunger = 0
 
     self.propagate()
-    self.rot += (self.activations[self.ROT_LEFT] - self.activations[self.ROT_RIGHT])
-    self.v = min(max(self.activations[self.FORWARD], -2000), -2000) / 750
+    self.rot += 0.001
+    self.rot += max(min(self.activations[self.ROT_CTRL][0], 1), 0) - 0.5
+    self.v = self.activations[self.FORWARD][0] * 4
+    self.hunger += abs(self.v) / 2
 
-    self.vx = -math.cos(self.rot) * self.v
-    self.vy = -math.sin(self.rot) * self.v
+    self.vx = math.cos(self.rot) * self.v
+    self.vy = math.sin(self.rot) * self.v
 
     if self.x + self.vx > 0 and self.x + self.vx < 256:
       self.x += self.vx
@@ -154,10 +146,10 @@ class Bug(Drawable):
       self.repr_anim -= 1
 
     self.heart_anim = False
-    if self.food_count > 6:
+    if self.food_count > 3:
       self.heart_anim = True
 
-    if self.food_count > 6 and len(bugs) < 50:
+    if self.food_count > 3 and len(bugs) < 30:
       new_bug = Bug(self.x, self.y)
 
       new_bug.network.weights = np.copy(self.network.weights)
@@ -171,14 +163,13 @@ class Bug(Drawable):
       bugs.append(new_bug)
 
       self.repr_anim = 100
-      self.food_count -= 7
+      self.food_count -= 4
       self.age += 1
 
-    c_act = [self.activations[i] for i in range(3, 12)]
+    c_act = [self.activations[i] for i in range(2, 6)]
     c_index = c_act.index(max(c_act))
     self.colour = self.COLOURS[c_index]
-
-    self.hunger += 1
+    self.hunger += 0.1
     if self.hunger >= 300:
       self.dead = True
 
@@ -218,7 +209,7 @@ class Bug(Drawable):
 
   def propagate(self):
     inputs = np.zeros((self.input_size, 1))
-    input_list = [math.sin(pyxel.frame_count * 6), self.hunger, self.colour_str, self.food_count]
+    input_list = [math.sin(pyxel.frame_count * 6), self.hunger, self.colour_str]
 
     for eye in range(self.NUM_EYES):
       input_list += [*self.eyes[eye]]
