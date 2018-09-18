@@ -79,10 +79,12 @@ class Bug(Drawable):
     #pyxel.line(self.x+math.cos(self.rot+self.eye_angle)*min(self.eyesight, dist), self.y+math.sin(self.rot+self.eye_angle)*min(self.eyesight, dist), self.x+math.cos(self.rot-self.eye_angle)*min(self.eyesight, dist), self.y+math.sin(self.rot-self.eye_angle)*min(self.eyesight, dist), 5 if not bool(self.eye_seen) else 6)
     pyxel.text(self.x - 10, self.y + 10, str(self.species)+'-'+str(self.gen), 15)
     if self.repr_anim > 0:
-      pyxel.text(self.x + 5, self.y - 10 - self.repr_anim // 10, "++", 15)
+      pyxel.text(self.x, self.y - 10 - self.repr_anim // 10, "++", 15)
 
     if self.heart_anim:
       pyxel.text(self.x + 10, self.y - 10, "<3", 15)
+    else:
+      pyxel.text(self.x + 10, self.y - 10, str(self.food_count), 15)
 
   def reset_eyes(self):
     self.eyes = [(self.eyesight, 0) for _ in range(self.NUM_EYES)]
@@ -122,7 +124,7 @@ class Bug(Drawable):
         if dist < self.eyesight:
           self.colour_str += 2 * (1 - dist / self.eyesight)
 
-    if self.age > 10:
+    if self.age > 12:
       self.dead = True
 
     for bit in food:
@@ -152,28 +154,25 @@ class Bug(Drawable):
       self.repr_anim -= 1
 
     self.heart_anim = False
-    if self.food_count > 6 and len(bugs) < 50:
+    if self.food_count > 6:
       self.heart_anim = True
-      for partner in bugs:
-        if partner != self and partner.food_count > 6 and math.sqrt((partner.x - self.x) ** 2 + (partner.y - self.y) ** 2) < 15:
-          for i in range(4):
-            new_bug = Bug(self.x, self.y)
-            new_bug.network.weights = np.copy(self.network.weights)
-            new_bug.network.biases = np.copy(self.network.biases)
-            new_bug.merge_network(np.copy(partner.network.weights), np.copy(partner.network.biases))
-            new_bug.mutate()
-            new_bug.species = self.species
-            new_bug.gen = self.gen + 1
-            new_bug.repr_anim = 100
-            bugs.append(new_bug)
-          self.repr_timer = 0
-          self.repr_anim = 100
-          self.food_count -= 7
-          partner.food_count -= 7
-          partner.repr_anim = 100
-          self.age += 1
-          partner.age += 1
-          break
+
+    if self.food_count > 6 and len(bugs) < 50:
+      new_bug = Bug(self.x, self.y)
+
+      new_bug.network.weights = np.copy(self.network.weights)
+      new_bug.network.biases = np.copy(self.network.biases)
+      new_bug.mutate()
+
+      new_bug.species = self.species
+      new_bug.gen = self.gen + 1
+      new_bug.repr_anim = 100
+
+      bugs.append(new_bug)
+
+      self.repr_anim = 100
+      self.food_count -= 7
+      self.age += 1
 
     c_act = [self.activations[i] for i in range(3, 12)]
     c_index = c_act.index(max(c_act))
