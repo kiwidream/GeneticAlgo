@@ -19,21 +19,22 @@ def update():
     if bit.eaten:
       food.remove(bit)
 
-      empty_spot = False
-      while empty_spot == False:
+  if pyxel.frame_count % 14 == 0:
+    empty_spot = False
+    while empty_spot == False:
 
-        x = random.uniform(10, 246)
-        y = random.uniform(10, 246)
-        empty_spot = True
+      x = random.uniform(10, 246)
+      y = random.uniform(10, 246)
+      empty_spot = True
 
-        for bug in bugs:
-          dist = math.sqrt((x-bug.x) ** 2 + (y-bug.y) ** 2)
+      for bug in bugs:
+        dist = math.sqrt((x-bug.x) ** 2 + (y-bug.y) ** 2)
 
-          if dist < 30:
-            empty_spot = False
-            break
+        if dist < 30:
+          empty_spot = False
+          break
 
-      food.append(Food(x, y))
+    food.append(Food(x, y))
 
   for bug in list(bugs):
     if bug.dead:
