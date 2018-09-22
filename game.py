@@ -5,7 +5,7 @@ import random
 import math
 
 pyxel.init(255, 255)
-food = [Food(random.uniform(10, 246), random.uniform(10, 246)) for _ in range(15)]
+food = [Food(random.uniform(10, 246), random.uniform(10, 246)) for _ in range(20)]
 bugs = [Bug(random.uniform(10, 246), random.uniform(10, 246)) for _ in range(40)]
 
 def update():
@@ -22,7 +22,7 @@ def update():
     if bit.eaten:
       food.remove(bit)
 
-  if pyxel.frame_count % 11 == 0:
+  if pyxel.frame_count % 5 == 0:
     empty_spot = False
     while empty_spot == False:
 
@@ -42,7 +42,7 @@ def update():
   for bug in list(bugs):
     if bug.dead:
       bugs.remove(bug)
-      if len(bugs) < 10:
+      if len(bugs) < 18:
         bugs.append(Bug(random.uniform(10, 246), random.uniform(10, 246)))
 
 def draw():
