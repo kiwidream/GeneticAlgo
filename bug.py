@@ -29,8 +29,8 @@ class Bug(Drawable):
     self.v = 0
     self.rot = 0
     self.hunger = 0
-    self.input_size = 3 + self.NUM_EYES * 2
-    sizes = [self.input_size, 7, 7, 6]
+    self.input_size = 2 + self.NUM_EYES * 2
+    sizes = [self.input_size, 10, 10, 6]
     self.network = Network(sizes)
     self.a = 0
     self.colour = 0
@@ -75,7 +75,7 @@ class Bug(Drawable):
 
 
   def reset_eyes(self):
-    self.eyes = [(0, 0) for _ in range(self.NUM_EYES)]
+    self.eyes = [(0, 0, 0) for _ in range(self.NUM_EYES)]
 
   def update(self, food, bugs):
 
@@ -89,23 +89,22 @@ class Bug(Drawable):
       min_obj = None
       min_dist = self.eyesight
       for drawable in food:
-        if drawable != self:
+        cx = drawable.x - self.x
+        cy = drawable.y - self.y
+        dist = math.sqrt(cx**2+cy**2)
+        if dist < min_dist:
           lx = math.cos(eye_offset+self.rot+self.eye_angle)*self.eyesight
           ly = math.sin(eye_offset+self.rot+self.eye_angle)*self.eyesight
           rx = math.cos(eye_offset+self.rot-self.eye_angle)*self.eyesight
           ry = math.sin(eye_offset+self.rot-self.eye_angle)*self.eyesight
-          cx = drawable.x - self.x
-          cy = drawable.y - self.y
           ca = math.atan2(cy, cx)
           la = math.atan2(ly, lx)
           ra = math.atan2(ry, rx)
           dr = abs(ra - ca)
           dl = abs(la - ca)
           if (dr < self.eye_angle * 2 and dl < self.eye_angle * 2):
-            dist = math.sqrt(cx**2+cy**2)
-            if dist < min_dist:
-              min_dist = dist
-              self.eyes[eye] = (self.eyesight - min_dist, 100)
+            min_dist = dist
+            self.eyes[eye] = (self.eyesight - min_dist, 100 * int(drawable.colour == 8))
 
     self.colour_str = 0
     for bug in bugs:
@@ -120,13 +119,13 @@ class Bug(Drawable):
     for bit in food:
       if not bit.eaten and math.sqrt((bit.x - self.x) ** 2 + (bit.y - self.y) ** 2) < 10:
         bit.eaten = True
-        self.food_count += 1
-        if self.food_count > 16:
+        if bit.deadly:
           self.dead = True
+
+        self.food_count += 1
         self.hunger = 0
 
     self.propagate()
-    self.rot += 0.001
     self.rot += max(min(self.activations[self.ROT_CTRL][0], 1), 0) - 0.5
     self.v = self.activations[self.FORWARD][0] * 4
     self.hunger += abs(self.v) / 2
@@ -149,7 +148,7 @@ class Bug(Drawable):
     if self.food_count > 3:
       self.heart_anim = True
 
-    if self.food_count > 3 and len(bugs) < 30:
+    if self.food_count > 3 and len(bugs) < 40:
       new_bug = Bug(self.x, self.y)
 
       new_bug.network.weights = np.copy(self.network.weights)
@@ -210,7 +209,7 @@ class Bug(Drawable):
 
   def propagate(self):
     inputs = np.zeros((self.input_size, 1))
-    input_list = [math.sin(pyxel.frame_count * 6), self.hunger, self.colour_str]
+    input_list = [math.sin(pyxel.frame_count * 8), self.hunger]
 
     for eye in range(self.NUM_EYES):
       input_list += [*self.eyes[eye]]
