@@ -15,7 +15,7 @@ class Food(Drawable):
     self.eaten = False
     self.timer = 200
 
-  def draw(self, show_labels):
+  def draw(self, show_labels, eye_debug):
     pyxel.circ(self.x, self.y, self.radius, self.colour)
 
   def update(self):
