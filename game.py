@@ -30,7 +30,7 @@ def update():
     if bit.eaten:
       food.remove(bit)
 
-  if pyxel.frame_count % 8 == 0:
+  if pyxel.frame_count % 4 == 0:
     empty_spot = False
     while empty_spot == False:
 
@@ -45,12 +45,12 @@ def update():
           empty_spot = False
           break
 
-    food.append(Food(x, y, random.randint(0, 100) < 20))
+    food.append(Food(x, y, False))
 
   for bug in list(bugs):
     if bug.dead:
       bugs.remove(bug)
-      if len(bugs) < 30:
+      if len(bugs) < 15:
         bugs.append(Bug(random.uniform(10, 246), random.uniform(10, 246)))
 
 def draw():

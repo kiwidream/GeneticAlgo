@@ -13,7 +13,7 @@ class Food(Drawable):
     self.deadly = deadly
     self.colour = 8 if deadly else 3
     self.eaten = False
-    self.timer = 200
+    self.timer = 400 if deadly else 200
 
   def draw(self, show_labels, eye_debug):
     pyxel.circ(self.x, self.y, self.radius, self.colour)
