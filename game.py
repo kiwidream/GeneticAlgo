@@ -7,10 +7,15 @@ import math
 pyxel.init(255, 255)
 food = [Food(random.uniform(10, 246), random.uniform(10, 246)) for _ in range(20)]
 bugs = [Bug(random.uniform(10, 246), random.uniform(10, 246)) for _ in range(40)]
+show_labels = False
 
 def update():
+  global show_labels
   if pyxel.btnp(pyxel.KEY_Q):
     pyxel.quit()
+
+  if pyxel.btnp(pyxel.KEY_T):
+    show_labels = not show_labels
 
   for bug in bugs:
     bug.update(food, bugs)
@@ -22,7 +27,7 @@ def update():
     if bit.eaten:
       food.remove(bit)
 
-  if pyxel.frame_count % 5 == 0:
+  if pyxel.frame_count % 4 == 0:
     empty_spot = False
     while empty_spot == False:
 
@@ -37,19 +42,20 @@ def update():
           empty_spot = False
           break
 
-    food.append(Food(x, y, random.randint(0, 100) < 5))
+    food.append(Food(x, y, random.randint(0, 100) < 10))
 
   for bug in list(bugs):
     if bug.dead:
       bugs.remove(bug)
-      if len(bugs) < 18:
+      if len(bugs) < 25:
         bugs.append(Bug(random.uniform(10, 246), random.uniform(10, 246)))
 
 def draw():
+  global show_labels
   pyxel.cls(0)
 
   for drawable in food + bugs:
-    drawable.draw()
+    drawable.draw(show_labels)
 
   pyxel.text(10, 10, "TOTAL BUGS: "+str(len(bugs)), 10)
 
