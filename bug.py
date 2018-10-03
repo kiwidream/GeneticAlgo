@@ -20,6 +20,7 @@ class Bug(Drawable):
   #outputs
   ROT_CTRL = 0
   FORWARD = 1
+  VIEW_SIZE = 2
 
   def __init__(self, x, y):
     super().__init__(x, y, 1)
@@ -29,7 +30,7 @@ class Bug(Drawable):
     self.rot = 0
     self.hunger = 0
     self.input_size = 2 + self.NUM_EYES * 2
-    sizes = [self.input_size, 8, 8, 6]
+    sizes = [self.input_size, 8, 8, 7]
     self.network = Network(sizes)
     self.a = 0
     self.colour = 0
@@ -139,11 +140,13 @@ class Bug(Drawable):
 
     self.propagate()
     rotv = max(min(self.activations[self.ROT_CTRL][0], 1), 0) - 0.5
+    self.eye_angle = 0.4 * max(min(self.activations[self.VIEW_SIZE][0], 1), 0)
+    self.eyesight = 80 - (150 * self.eye_angle)
     self.rot += rotv
     self.a = self.activations[self.FORWARD][0] * 0.25
     self.v += self.a
     self.v *= 0.92
-    self.hunger += abs(self.a) + abs(rotv) * 2
+    self.hunger += abs(self.a) + abs(rotv) * 2 + self.eyesight / 64
 
     self.vx = math.cos(self.rot) * self.v
     self.vy = math.sin(self.rot) * self.v
@@ -166,8 +169,11 @@ class Bug(Drawable):
     if self.food_count > 3 and len(bugs) < 40:
       new_bug = Bug(self.x, self.y)
 
-      new_bug.network.weights = np.copy(self.network.weights)
-      new_bug.network.biases = np.copy(self.network.biases)
+      for i in range(len(self.network.weights)):
+        for j in range(len(self.network.weights[i])):
+          new_bug.network.weights[i][j] = self.network.weights[i][j]
+          new_bug.network.biases[i][j] = self.network.biases[i][j]
+
       new_bug.mutate()
 
       new_bug.species = self.species
@@ -180,11 +186,11 @@ class Bug(Drawable):
       self.food_count -= 4
       self.age += 1
 
-    c_act = [self.activations[i] for i in range(2, 6)]
+    c_act = [self.activations[i] for i in range(3, 7)]
     c_index = c_act.index(max(c_act))
     self.colour = self.COLOURS[c_index]
     self.hunger += 1
-    if self.hunger >= 300:
+    if self.hunger >= 500:
       self.dead = True
 
   def merge_network(self, other_weights, other_biases):
@@ -200,10 +206,9 @@ class Bug(Drawable):
   def mutate(self):
     for i in range(len(self.network.weights)):
       for j in range(len(self.network.weights[i])):
-
-        if random.randint(0, 10) < 8:
-          self.network.weights[i][j] *= random.uniform(0.95, 1.05)
-          self.network.biases[i][j] *= random.uniform(0.95, 1.05)
+        if random.randint(0, 10) < 7:
+          self.network.weights[i][j] *= random.uniform(0.85, 1.15)
+          self.network.biases[i][j] *= random.uniform(0.9, 1.1)
 
   def line_intersect(self, ax, ay, bx, by, cx, cy, r):
     ax -= cx
@@ -225,7 +230,7 @@ class Bug(Drawable):
 
   def propagate(self):
     inputs = np.zeros((self.input_size, 1))
-    input_list = [math.sin(pyxel.frame_count * 2), self.hunger]
+    input_list = [math.sin(pyxel.frame_count / 6), self.hunger]
 
     for eye in range(self.NUM_EYES):
       input_list += [*self.eyes[eye]]
